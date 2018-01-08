@@ -26,12 +26,10 @@ def update(dummy=None):
         return
     flooded = img.copy()
     mask[:] = 0
-    lo = cv.getTrackbarPos('lo', 'floodfill')
-    hi = cv.getTrackbarPos('hi', 'floodfill')
     flags = connectivity
     if fixed_range:
         flags |= cv.FLOODFILL_FIXED_RANGE
-    cv.floodFill(flooded, mask, seed_pt, (0, 0, 255), (lo,) * 3, (hi,) * 3, flags)
+    cv.floodFill(flooded, mask, seed_pt, (0, 0, 255), (20,) * 3, (20,) * 3, flags)
     cv.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
     cv.imshow('floodfill', flooded)
 
@@ -45,8 +43,6 @@ def onmouse(event, x, y, flags, param):
 
 update()
 cv.setMouseCallback('floodfill', onmouse)
-cv.createTrackbar('lo', 'floodfill', 20, 255, update)
-cv.createTrackbar('hi', 'floodfill', 20, 255, update)
 
 while True:
     ch = cv.waitKey()
