@@ -1,38 +1,56 @@
-import cv2
+import sys
+
+import cv2 as cv
 import numpy as np
 
-img = cv2.imread('k.jpg', 0)
-cross = np.array([
-    [0, 0, 1, 0, 0],
-    [0, 0, 1, 0, 0],
-    [1, 1, 1, 1, 1],
-    [0, 0, 1, 0, 0],
-    [0, 0, 1, 0, 0]], dtype=np.uint8)
-diamond = np.array([
-    [0, 0, 1, 0, 0],
-    [0, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1],
-    [0, 1, 1, 1, 0],
-    [0, 0, 1, 0, 0]], dtype=np.uint8)
-r1 = cv2.erode(img, cross, iterations=1)
-r1 = cv2.dilate(r1, diamond, iterations=1)
+try:
+    fn = sys.argv[1]
+except:
+    fn = 'contour.jpg'
 
-xshape = np.array([
-    [1, 0, 0, 0, 1],
-    [0, 1, 0, 1, 0],
-    [0, 0, 1, 0, 0],
-    [0, 1, 0, 1, 0],
-    [1, 0, 0, 0, 1]], dtype=np.uint8)
-square = np.array([
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1]], dtype=np.uint8)
-r2 = cv2.erode(img, xshape, iterations=1)
-r2 = cv2.dilate(r2, square, iterations=1)
-r = cv2.absdiff(r2, r1)
-cv2.imshow('image', r)
-k = cv2.waitKey(0) & 0xFF
-if k == 27:  # wait for ESC key to exit
-    cv2.destroyAllWindows()
+img = cv.imread(fn, True)
+if img is None:
+    print('Failed to load image file:', fn)
+    sys.exit(1)
+
+h, w = img.shape[:2]
+mask = np.zeros((h + 2, w + 2), np.uint8)
+seed_pt = None
+fixed_range = True
+connectivity = 4
+
+
+def update(dummy=None):
+    if seed_pt is None:
+        cv.imshow('floodfill', img)
+        return
+    flooded = img.copy()
+    mask[:] = 0
+    lo = cv.getTrackbarPos('lo', 'floodfill')
+    hi = cv.getTrackbarPos('hi', 'floodfill')
+    flags = connectivity
+    if fixed_range:
+        flags |= cv.FLOODFILL_FIXED_RANGE
+    cv.floodFill(flooded, mask, seed_pt, (0, 0, 255), (lo,) * 3, (hi,) * 3, flags)
+    cv.circle(flooded, seed_pt, 2, (0, 0, 255), -1)
+    cv.imshow('floodfill', flooded)
+
+
+def onmouse(event, x, y, flags, param):
+    global seed_pt
+    if flags & cv.EVENT_FLAG_LBUTTON:
+        seed_pt = x, y
+        update()
+
+
+update()
+cv.setMouseCallback('floodfill', onmouse)
+cv.createTrackbar('lo', 'floodfill', 20, 255, update)
+cv.createTrackbar('hi', 'floodfill', 20, 255, update)
+
+while True:
+    ch = cv.waitKey()
+    if ch == 27:
+        break
+
+cv.destroyAllWindows()
